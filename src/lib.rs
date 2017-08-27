@@ -10,13 +10,19 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(args: &[String]) -> Result<Config, &str> {
-        if args.len() < 3 {
-            return Err("You must provide a query and a filename!");
-        }
+    pub fn new(mut args: env::Args) -> Result<Config, &'static str> {
+        // Skip binary name
+        args.next();
 
-        let query = args[1].clone();
-        let filename = args[2].clone();
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("You must provide a search query")
+        };
+
+        let filename = match args.next() {
+            Some(arg) => arg,
+            None => return Err("You must provide a file name")
+        };
 
         let case_sensitive = env::var("CASE_INSENSITIVE").is_err();
 
@@ -42,28 +48,16 @@ pub fn run(config: Config) -> Result<(), Box<Error>> {
 }
 
 fn search<'a>(query: &str, text: &'a str) -> Vec<&'a str> {
-    let mut results = Vec::new(); 
-
-    for line in text.lines() {
-        if line.contains(query) {
-            results.push(line);
-        }
-    }
-
-    results
+    text.lines()
+        .filter(|line| line.contains(query))
+        .collect()
 }
 
 fn search_case_insensitive<'a>(query: &str, text: &'a str) -> Vec<&'a str> {
-    let mut results = Vec::new(); 
     let query = query.to_lowercase();
-
-    for line in text.lines() {
-        if line.to_lowercase().contains(&query) {
-            results.push(line);
-        }
-    }
-
-    results
+    text.lines()
+        .filter(|line| line.to_lowercase().contains(&query))
+        .collect()
 }
 
 #[cfg(test)]
